@@ -1,0 +1,54 @@
+[v-cloak] {
+    display: none;
+}
+
+h3 {
+    text-align: center;
+    font-family: Arial, sans-serif;
+    color: #ff0000;
+}
+
+
+#modalButton {
+    padding: 8px 16px;
+    font-size: 16px;
+    cursor: pointer;
+    margin: 10px;
+    border-radius: 10px;
+    background-color: #cacaca;
+}
+
+#modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+#modalBlur {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    backdrop-filter: blur(5px);
+    transition-duration: 0.5s;
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#modalBlur div {
+    background-color: white;
+    padding: 20px;
+    border: 2px solid #888;
+    width: 300px;
+    text-align: center;
+    z-index: 1001;
+}

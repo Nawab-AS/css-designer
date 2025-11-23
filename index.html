@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS Designer</title>
+    <link rel="stylesheet" href="./styles.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="./index.js" defer></script>
+</head>
+<body v-cloak>
+    <h3>CSS Designer</h3>
+
+    <iframe id="page"></iframe>
+
+    <div id="modal" v-if="modal">
+        <div id="modalBlur">
+            <div id="XSSModal" v-if="modal == 'XSSWarning'">
+                <p>Warning: Script tags have been removed to prevent XSS (Cross-Site Scripting)</p>
+                <button @click="modal = ''">Okay</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
