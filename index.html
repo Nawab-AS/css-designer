@@ -9,15 +9,48 @@
     <script src="./index.js" defer></script>
 </head>
 <body v-cloak>
-    <h3>CSS Designer</h3>
+    <div id="header">
+        <h1>CSS Designer</h1>
+    </div>
 
-    <iframe id="page"></iframe>
+    <div id="buttons">
+        <button @click="modal = 'Import'">New HTML File</button>
+        <button @click="modal = 'Export'">Export</button>
+    </div>
+
+    <div id="page">
+        <iframe id="iframe"></iframe>
+    </div>
 
     <div id="modal" v-if="modal">
         <div id="modalBlur">
             <div id="XSSModal" v-if="modal == 'XSSWarning'">
                 <p>Warning: Script tags have been removed to prevent XSS (Cross-Site Scripting)</p>
                 <button @click="modal = ''">Okay</button>
+            </div>
+
+            <div id="ExportModal" v-if="modal == 'Export'">
+                <p>Export your HTML file</p>
+                <span>
+                    <button @click="exportHTML('copy'); modal = ''">Copy HTML</button>
+                    <div style="display:inline-block; width: 10px; height: 2px; border: none;"></div>
+                    <button @click="exportHTML('download'); modal = ''">Download</button>
+                </span>
+                <br>
+                <br>
+                <button @click="modal = ''">Cancel</button>
+            </div>
+
+            <div id="ImportModal" v-if="modal == 'Import'">
+                <p>Import your HTML file</p>
+                <span>
+                    <button @click="importHTML('paste')">Paste HTML</button>
+                    <div style="display:inline-block; width: 10px; height: 2px; border: none;"></div>
+                    <button @click="importHTML('upload')">Upload</button>
+                </span>
+                <br>
+                <br>
+                <button @click="modal = ''">Cancel</button>
             </div>
         </div>
     </div>
