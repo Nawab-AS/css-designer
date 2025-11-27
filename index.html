@@ -6,6 +6,7 @@
     <title>CSS Designer</title>
     <link rel="stylesheet" href="./styles.css">
     <script src="./vue.global.js"></script>
+    <script src="./cssProps.js"></script>
     <script src="./index.js" defer></script>
 </head>
 <body v-cloak>
@@ -14,9 +15,9 @@
     </div>
 
     <div id="buttons">
-        <button @click="modal = 'Import'">New HTML File</button>
-        <button @click="modal = 'Export'">Export</button>
-        <button @click="startSelectMode">Select Element</button>
+        <button @click="modal = 'Import'" :disabled="selectedElementInfo">New HTML File</button>
+        <button @click="modal = 'Export'" :disabled="selectedElementInfo">Export</button>
+        <button @click="startSelectMode" :disabled="selectedElementInfo">Select Element</button>
     </div>
 
     <div id="page">
@@ -65,10 +66,32 @@
             </p>
         </div>
         <div id="css-editor">
-            <p><strong>CSS Editor:</strong></p>
-            <textarea id="cssInput" v-model="liveCSS" @input="applyLiveCSS"></textarea>
+            <p><strong>Style Editor:</strong></p>
+            <form id="cssForm" @input="applyLiveCSS">
+                <div class="css-list">
+                    <template v-for="(prop, key) in cssConfig">
+                        <template v-if="!prop.unlocked || (prop.unlocked && prop.unlocked.position && prop.unlocked.position.includes(cssProps.position.value))">
+                               <div class="css-list-item"
+                                   :class="{ unlocked: prop.unlocked && prop.unlocked.position && prop.unlocked.position.includes(cssProps.position.value) }">
+                                <label v-if="prop.type === 'color'">
+                                    {{ key }}: <input type="color" v-model="cssProps[key].value">
+                                </label>
+                                <label v-else-if="prop.type === 'px'">
+                                    {{ key }}: <input type="number" v-model="cssProps[key].value"> px
+                                </label>
+                                <label v-else-if="prop.type === 'dropdown'">
+                                    {{ key }}:
+                                    <select v-model="cssProps[key].value">
+                                        <option v-for="opt in prop.options" :value="opt">{{ opt || 'Default' }}</option>
+                                    </select>
+                                </label>
+                            </div>
+                        </template>
+                    </template>
+                </div>
+            </form>
         </div>
-        <button id="closePanel" @click="clearSelectedElement">Close</button>
+        <button id="closePanel" @click="closeStyleEditor">Close</button>
     </div>
 </body>
 </html>

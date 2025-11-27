@@ -87,16 +87,48 @@ iframe {
     text-align: center;
 }
 
-#cssInput {
-    width: calc(100% - 60px);
-    min-height: 60px;
-    font-family: monospace;
+#css-editor {
+    display: flex;
+    flex-direction: column;
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+#cssForm {
+    width: 100%;
+}
+.css-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+#cssForm .css-list-item {
+    display: flex;
+    align-items: center;
     font-size: 13px;
-    margin: 5px;
-    border-radius: 6px;
-    border: 1px solid #cacaca;
-    padding: 6px;
-    background: #f8f8f8;
+    margin-bottom: 2px;
+}
+#cssForm .css-list-item.unlocked {
+    margin-left: 32px;
+}
+#cssForm label {
+    gap: 4px;
+}
+#cssForm input[type="color"] {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: none;
+    padding: 0;
+}
+#cssForm input[type="number"] {
+    width: 48px;
+}
+#cssForm input[type="text"] {
+    width: 120px;
+}
+#cssForm select {
+    font-size: 13px;
 }
 #closePanel {
     margin-left: 10px;

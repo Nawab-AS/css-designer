@@ -2,12 +2,12 @@ const { createApp, ref, watch } = Vue;
 
 
 
-// dynamic HTML
 const pageHTML = ref('');
 const modal = ref('');
 const selectMode = ref(false);
 const selectedElementInfo = ref(null);
 const liveCSS = ref('');
+const cssProps = ref(JSON.parse(JSON.stringify(cssConfig)));
 watch(pageHTML, (newHTML) => {
     const iframe = document.getElementById('iframe');
     const doc = iframe.contentDocument || iframe.contentWindow.document;
@@ -21,7 +21,7 @@ watch(pageHTML, (newHTML) => {
         if (selectMode.value) injectSelectionScript();
     }, 100);
 });
-// Selection mode logic
+
 function startSelectMode() {
     selectMode.value = true;
     injectSelectionScript();
@@ -38,14 +38,46 @@ function injectSelectionScript() {
     script.textContent = `
         (function() {
             let last;
+            let infoBox;
+            function createInfoBox() {
+                infoBox = document.createElement('div');
+                infoBox.style.position = 'fixed';
+                infoBox.style.zIndex = '99999';
+                infoBox.style.background = '#fff';
+                infoBox.style.border = '1px solid #00f';
+                infoBox.style.borderRadius = '4px';
+                infoBox.style.padding = '4px 8px';
+                infoBox.style.fontSize = '12px';
+                infoBox.style.fontFamily = 'monospace';
+                infoBox.style.pointerEvents = 'none';
+                infoBox.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                document.body.appendChild(infoBox);
+            }
+            function showInfoBox(e) {
+                if (!infoBox) createInfoBox();
+                const el = e.target;
+                let info = el.tagName.toLowerCase();
+                if (el.id) info += ' #' + el.id;
+                if (el.className) info += ' .' + el.className.trim().replace(/\\s+/g, '.');
+                infoBox.textContent = info;
+                const rect = el.getBoundingClientRect();
+                infoBox.style.top = (rect.top + window.scrollY + 4) + 'px';
+                infoBox.style.left = (rect.left + window.scrollX + 4) + 'px';
+                infoBox.style.display = 'block';
+            }
+            function hideInfoBox() {
+                if (infoBox) infoBox.style.display = 'none';
+            }
             function highlight(e) {
                 if (last) last.style.outline = '';
                 last = e.target;
                 last.style.outline = '2px solid #00f';
+                showInfoBox(e);
             }
             function unhighlight(e) {
                 if (last) last.style.outline = '';
                 last = null;
+                hideInfoBox();
             }
             function getComputedStyles(el) {
                 const computed = window.getComputedStyle(el);
@@ -87,6 +119,10 @@ function injectSelectionScript() {
                     el.removeEventListener('click', select);
                     el.style.outline = '';
                 });
+                if (infoBox && infoBox.parentNode) {
+                    infoBox.parentNode.removeChild(infoBox);
+                    infoBox = null;
+                }
             };
         })();
     `;
@@ -108,16 +144,28 @@ function removeSelectionScript() {
 
 window.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'element-selected') {
+        // If another element is selected, update pageHTML for previous selection
+        if (selectedElementInfo.value) {
+            updatePageHTMLWithStyle(selectedElementInfo.value, resolveCssProps(cssProps.value));
+        }
         selectedElementInfo.value = event.data;
         liveCSS.value = event.data.style || '';
+        cssProps.value = parseInitialStyles(event.data.style, cssConfig);
         selectMode.value = false;
         removeSelectionScript();
     }
 });
 
-function clearSelectedElement() {
+function closeStyleEditor() {
+    // Update pageHTML with current inline CSS before closing
+    if (selectedElementInfo.value) {
+        updatePageHTMLWithStyle(selectedElementInfo.value, resolveCssProps(cssProps.value));
+    }
     selectedElementInfo.value = null;
     liveCSS.value = '';
+    Object.assign(cssProps.value, {
+        color: '', backgroundColor: '', fontSize: '', fontFamily: '', fontWeight: '', textAlign: '', position: 'static', top: '', left: '', right: '', bottom: '', boxShadowX: '', boxShadowY: '', boxShadowBlur: '', boxShadowColor: '#000000', padding: '', margin: ''
+    });
 }
 
 function applyLiveCSS() {
@@ -125,14 +173,26 @@ function applyLiveCSS() {
     const doc = iframe.contentDocument || iframe.contentWindow.document;
     if (!doc || !selectedElementInfo.value) return;
     let el = null;
-    if (selectedElementInfo.value.id) {el = doc.getElementById(selectedElementInfo.value.id)}
+    if (selectedElementInfo.value.id) el = doc.getElementById(selectedElementInfo.value.id);
     if (!el) {
         const candidates = Array.from(doc.getElementsByTagName(selectedElementInfo.value.tag));
         el = candidates.find(e => e.outerHTML === selectedElementInfo.value.outerHTML) || candidates[0];
     }
-    if (el) {
-        el.style.cssText = liveCSS.value;
+    if (!el) return;
+    el.setAttribute('style', resolveCssProps(cssProps.value));
+    updatePageHTMLWithStyle(selectedElementInfo.value, resolveCssProps(cssProps.value));
+}
+
+function updatePageHTMLWithStyle(elementInfo, styleString) {
+    if (!elementInfo || !styleString) return;
+    const html = pageHTML.value;
+    const oldOuter = elementInfo.outerHTML;
+
+    let newOuter = oldOuter.replace(/style="[^"]*"/, '');
+    if (newOuter.endsWith('>')) {
+        newOuter = newOuter.replace('>', ` style="${styleString}">`);
     }
+    pageHTML.value = html.replace(oldOuter, newOuter);
 }
 (async ()=>{
     pageHTML.value = (await fetch('./default.html').then(res => res.text())).replace(/<script.*?<\/script>/gis, '');
@@ -188,9 +248,10 @@ createApp({
             importHTML,
             startSelectMode,
             selectedElementInfo,
-            liveCSS,
+            cssProps,
+            cssConfig,
             applyLiveCSS,
-            clearSelectedElement
+            closeStyleEditor,
         };
     }
 }).mount('body');
