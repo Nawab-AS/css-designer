@@ -82,18 +82,23 @@ function parseInitialStyles(styleString, config = cssConfig) {
 	return props;
 }
 
-function resolveCssProps(props, config = cssConfig) {
-	let style = '';
+function applyCssProps(element, props, config = cssConfig) {
 	Object.keys(config).forEach(key => {
 		const prop = config[key];
 		const val = props[key]?.value ?? prop.value;
+		
+		if (key.startsWith('boxShadow')) {
+			return;
+		}
+		
 		if (prop.type === 'color') {
-			style += `${key}:${val || ''};`;
+			if (val) element.style.setProperty(key, val);
 		} else if (prop.type === 'px') {
-			if (key.startsWith('boxShadow')) return;
-			style += `${key}:${val !== '' && val !== undefined ? val : ''}${val !== '' && val !== undefined ? 'px' : ''};`;
-			       } else if (prop.type === 'dropdown') {
-				       style += `${key}:${val || ''};`;
+			if (val !== '' && val !== undefined) {
+				element.style.setProperty(key, val + 'px');
+			}
+		} else if (prop.type === 'dropdown') {
+			if (val) element.style.setProperty(key, val);
 		}
 	});
 
@@ -101,6 +106,5 @@ function resolveCssProps(props, config = cssConfig) {
 	const by = props.boxShadowY?.value ?? config.boxShadowY.value;
 	const blur = props.boxShadowBlur?.value ?? config.boxShadowBlur.value;
 	const color = props.boxShadowColor?.value ?? config.boxShadowColor.value;
-	style += `box-shadow:${bx||0}px ${by||0}px ${blur||0}px ${color};`;
-	return style;
+	element.style.setProperty('box-shadow', `${bx||0}px ${by||0}px ${blur||0}px ${color}`);
 }

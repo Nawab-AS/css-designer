@@ -1,26 +1,30 @@
 const { createApp, ref, watch } = Vue;
 
-
-
 const pageHTML = ref('');
 const modal = ref('');
 const selectMode = ref(false);
 const selectedElementInfo = ref(null);
-const liveCSS = ref('');
 const cssProps = ref(JSON.parse(JSON.stringify(cssConfig)));
-watch(pageHTML, (newHTML) => {
+
+function loadHTMLToIframe(html) {
     const iframe = document.getElementById('iframe');
     const doc = iframe.contentDocument || iframe.contentWindow.document;
-    const newHTML2 = newHTML.replace(/<script.*?<\/script>/gis, ''); // remove script tags to prevent XSS
-    modal.value = newHTML != newHTML2 ? 'XSSWarning' : '';
+    const cleanHTML = html.replace(/<script.*?<\/script>/gis, ''); // remove script tags to prevent XSS
+    modal.value = html != cleanHTML ? 'XSSWarning' : '';
     doc.open();
-    doc.write(newHTML2);
+    doc.write(cleanHTML);
     doc.close();
 
     setTimeout(() => {
         if (selectMode.value) injectSelectionScript();
     }, 100);
-});
+}
+
+function getHTMLFromIframe() {
+    const iframe = document.getElementById('iframe');
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    return doc.documentElement.outerHTML;
+}
 
 function startSelectMode() {
     selectMode.value = true;
@@ -144,12 +148,7 @@ function removeSelectionScript() {
 
 window.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'element-selected') {
-        // If another element is selected, update pageHTML for previous selection
-        if (selectedElementInfo.value) {
-            updatePageHTMLWithStyle(selectedElementInfo.value, resolveCssProps(cssProps.value));
-        }
         selectedElementInfo.value = event.data;
-        liveCSS.value = event.data.style || '';
         cssProps.value = parseInitialStyles(event.data.style, cssConfig);
         selectMode.value = false;
         removeSelectionScript();
@@ -157,15 +156,7 @@ window.addEventListener('message', (event) => {
 });
 
 function closeStyleEditor() {
-    // Update pageHTML with current inline CSS before closing
-    if (selectedElementInfo.value) {
-        updatePageHTMLWithStyle(selectedElementInfo.value, resolveCssProps(cssProps.value));
-    }
     selectedElementInfo.value = null;
-    liveCSS.value = '';
-    Object.assign(cssProps.value, {
-        color: '', backgroundColor: '', fontSize: '', fontFamily: '', fontWeight: '', textAlign: '', position: 'static', top: '', left: '', right: '', bottom: '', boxShadowX: '', boxShadowY: '', boxShadowBlur: '', boxShadowColor: '#000000', padding: '', margin: ''
-    });
 }
 
 function applyLiveCSS() {
@@ -179,28 +170,18 @@ function applyLiveCSS() {
         el = candidates.find(e => e.outerHTML === selectedElementInfo.value.outerHTML) || candidates[0];
     }
     if (!el) return;
-    el.setAttribute('style', resolveCssProps(cssProps.value));
-    updatePageHTMLWithStyle(selectedElementInfo.value, resolveCssProps(cssProps.value));
+    applyCssProps(el, cssProps.value);
 }
 
-function updatePageHTMLWithStyle(elementInfo, styleString) {
-    if (!elementInfo || !styleString) return;
-    const html = pageHTML.value;
-    const oldOuter = elementInfo.outerHTML;
-
-    let newOuter = oldOuter.replace(/style="[^"]*"/, '');
-    if (newOuter.endsWith('>')) {
-        newOuter = newOuter.replace('>', ` style="${styleString}">`);
-    }
-    pageHTML.value = html.replace(oldOuter, newOuter);
-}
 (async ()=>{
-    pageHTML.value = (await fetch('./default.html').then(res => res.text())).replace(/<script.*?<\/script>/gis, '');
+    const html = await fetch('./default.html').then(res => res.text());
+    loadHTMLToIframe(html);
 })();
 
 function exportHTML(type) {
+    const html = getHTMLFromIframe();
     if (type == 'download') {
-        const blob = new Blob([pageHTML.value], { type: 'text/html' });
+        const blob = new Blob([html], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -210,7 +191,7 @@ function exportHTML(type) {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     } else if (type == 'copy') {
-        navigator.clipboard.writeText(pageHTML.value)
+        navigator.clipboard.writeText(html)
             .then(() => {
                 alert('HTML copied to clipboard');
             }).catch(err => {
@@ -228,13 +209,14 @@ async function importHTML(type) {
             const file = e.target.files[0];
             if (file) {
                 const text = await file.text();
-                pageHTML.value = text;
+                loadHTMLToIframe(text);
             }
         };
         input.click();
         modal.value = '';
     } else if (type == 'paste') {
-        pageHTML.value = await navigator.clipboard.readText();
+        const text = await navigator.clipboard.readText();
+        loadHTMLToIframe(text);
     }
 }
 
@@ -242,7 +224,6 @@ async function importHTML(type) {
 createApp({
     setup() {
         return {
-            pageHTML,
             modal,
             exportHTML,
             importHTML,
