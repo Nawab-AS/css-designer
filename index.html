@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CSS Designer</title>
     <link rel="stylesheet" href="./styles.css">
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="./vue.global.js"></script>
     <script src="./index.js" defer></script>
 </head>
 <body v-cloak>
@@ -16,6 +16,7 @@
     <div id="buttons">
         <button @click="modal = 'Import'">New HTML File</button>
         <button @click="modal = 'Export'">Export</button>
+        <button @click="startSelectMode">Select Element</button>
     </div>
 
     <div id="page">
@@ -28,7 +29,6 @@
                 <p>Warning: Script tags have been removed to prevent XSS (Cross-Site Scripting)</p>
                 <button @click="modal = ''">Okay</button>
             </div>
-
             <div id="ExportModal" v-if="modal == 'Export'">
                 <p>Export your HTML file</p>
                 <span>
@@ -40,7 +40,6 @@
                 <br>
                 <button @click="modal = ''">Cancel</button>
             </div>
-
             <div id="ImportModal" v-if="modal == 'Import'">
                 <p>Import your HTML file</p>
                 <span>
@@ -53,6 +52,23 @@
                 <button @click="modal = ''">Cancel</button>
             </div>
         </div>
+    </div>
+
+    <div id="element-panel" v-if="selectedElementInfo">
+        <div id="element-info">
+            <strong>Selected Element:</strong>
+            <p>Tag: {{ selectedElementInfo.tag }}</p>
+            <p>
+                <span v-if="selectedElementInfo.id">ID: {{ selectedElementInfo.id }}</span>
+                <span v-if="selectedElementInfo.id && selectedElementInfo.class">&nbsp;|&nbsp;</span>
+                <span v-if="selectedElementInfo.class">Class: {{ selectedElementInfo.class }}</span>
+            </p>
+        </div>
+        <div id="css-editor">
+            <p><strong>CSS Editor:</strong></p>
+            <textarea id="cssInput" v-model="liveCSS" @input="applyLiveCSS"></textarea>
+        </div>
+        <button id="closePanel" @click="clearSelectedElement">Close</button>
     </div>
 </body>
 </html>
