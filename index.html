@@ -16,8 +16,8 @@
 
     <div id="buttons">
         <button @click="modal = 'Import'" :disabled="selectedElementInfo">New HTML File</button>
-        <button @click="modal = 'Export'" :disabled="selectedElementInfo">Export</button>
         <button @click="startSelectMode" :disabled="selectedElementInfo">Select Element</button>
+        <button @click="modal = 'Export'" :disabled="selectedElementInfo">Export</button>
     </div>
 
     <div id="page">
